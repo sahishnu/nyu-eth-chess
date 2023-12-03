@@ -2,6 +2,7 @@
 
 Final project for NYU CSCI-GA 3033-078 Cryptocurrencies &amp; Decentralized Ledgers. The project will be an attempt at implementing chess via layer-2 eth solutions.
 
+Front-end repo: [nyu-chess-frontend](https://github.com/sahishnu/nyu-chess-frontend)
 
 ## Development
 
@@ -19,6 +20,11 @@ npx hardhat compile
 npx hardhat test
 ```
 
+## Resources
+
+[Hardhat Docs](https://hardhat.org/docs)
+
+[State Channels](https://ethereum.org/en/developers/docs/scaling/state-channels/#how-state-channels-work)
 
 ## Project Proposal
 
