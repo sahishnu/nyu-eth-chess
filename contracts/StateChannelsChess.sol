@@ -20,19 +20,24 @@ contract StateChannelsChess {
    */
   struct GameState {
     uint8 seq;
-    bytes32 board;
+    string board;
     address currentTurn;
     bool gameOver;
   }
   GameState public state;
 
   uint256 public timeoutInterval;
-  uint256 public timeout = 2**256 - 1;
+  uint256 public constant MAX_TIMEOUT = 2**256 - 1;
+  // Initially the timeout is some ridiculously high block number.
+  // When a timeout is invoked, this value is updated to the
+  // current block number + timeoutInterval. When a move is made,
+  // Reset this value back to max.
+  uint256 public timeout = MAX_TIMEOUT;
 
   event GameStarted();
   event GameEnded();
   event TimeoutStarted();
-  event MoveMade(address player, uint8 seq, uint8 value);
+  event MoveMade(address player, uint8 seq, string value);
 
   // Modifier which asserts that a function must be called by player 1 or player 2.
   modifier onlyPlayer() {
@@ -51,6 +56,7 @@ contract StateChannelsChess {
     player1 = msg.sender;
     wagerAmount = msg.value;
     timeoutInterval = _timeoutInterval;
+    state.board = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
   }
 
   // Player 2 can join as long as the game has not started (or ended).
@@ -79,23 +85,17 @@ contract StateChannelsChess {
 
 
   // Play methods
-  function move(uint8 seq, uint8 value) public onlyPlayer {
+  function move(uint8 seq, string calldata value) public onlyPlayer {
     require(!state.gameOver, "Game has ended.");
     require(msg.sender == state.currentTurn, "Not your turn.");
     require(state.seq == seq, "Incorrect sequence number.");
 
     state.currentTurn = opponentOf(msg.sender);
+    state.board = value;
     state.seq += 1;
 
-    // Clear timeout
-    timeout = 2**256 - 1;
-
-    // if (state.num == 21) {
-    //   gameOver = true;
-    //   address payable sender = payable(msg.sender);
-    //   sender.transfer(address(this).balance);
-    //   sender.transfer(address(this).balance);
-    // }
+    // Reset timeout to the max value.
+    timeout = MAX_TIMEOUT;
 
     emit MoveMade(msg.sender, seq, value);
   }
@@ -139,7 +139,6 @@ contract StateChannelsChess {
     }
   }
 
-
   /**
    * The timeout mechanism allows a player to start a timer on their opponents turn.
    * If the opponent does not make a move in the timeoutInterval time, they are forfeit.
@@ -154,6 +153,10 @@ contract StateChannelsChess {
     emit TimeoutStarted();
   }
 
+  /**
+   * If the timout is reached without the opponent taking their turn,
+   * then the player can claim all the wager funds.
+   */
   function claimTimeout() public {
     require(!state.gameOver, "Game has ended.");
     require(block.timestamp >= timeout);
@@ -161,5 +164,30 @@ contract StateChannelsChess {
     state.gameOver = true;
     address payable opponent = payable(opponentOf(state.currentTurn));
     opponent.transfer(address(this).balance);
+  }
+
+  /// signature methods.
+  function splitSignature(bytes memory sig) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
+    require(sig.length == 65);
+    assembly {
+      // first 32 bytes, after the length prefix.
+      r := mload(add(sig, 32))
+      // second 32 bytes.
+      s := mload(add(sig, 64))
+      // final byte (first byte of the next 32 bytes).
+      v := byte(0, mload(add(sig, 96)))
+    }
+    return (v, r, s);
+  }
+
+  function recoverSigner(bytes32 message, bytes memory sig) internal pure returns (address) {
+    (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+
+    return ecrecover(message, v, r, s);
+  }
+
+  /// builds a prefixed hash to mimic the behavior of eth_sign.
+  function prefixed(bytes32 hash) internal pure returns (bytes32) {
+      return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
   }
 }

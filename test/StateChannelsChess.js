@@ -61,6 +61,19 @@ describe("StateChannelsChess", function () {
     });
   });
 
+  describe("Cancel", async function () {
+    it("Should allow player to cancel game before it starts", async function () {
+      const { chessGame, owner, wagerAmount } = await loadFixture(deployChessFixture);
+      await expect(chessGame.connect(owner).cancel()).to.changeEtherBalance(chessGame, -wagerAmount)
+    });
+
+    it("Should reject player from canceling if game has started", async function () {
+      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(deployChessFixture);
+      await expect(chessGame.connect(opponent).join({ value: wagerAmount })).to.changeEtherBalance(chessGame, wagerAmount);
+      await expect(chessGame.connect(owner).cancel()).to.be.reverted;
+    });
+  });
+
   describe("Opponent", async function () {
     it("Should allow opponent to join before game starts", async function () {
       const { chessGame, opponent, wagerAmount } = await loadFixture(deployChessFixture);
