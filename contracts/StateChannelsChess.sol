@@ -10,7 +10,8 @@ contract StateChannelsChess {
    * Representation of the current state of the game.
    * 
    * seq: A sequence number to help determine the order of moves happening in the game.
-   * board: A 32 byte representation of the board.
+   * board: A standard PGN string which represents all the moves made in the game so far.
+   *        eg: '1. d3 e6 2. Qd2 Qg5 3. Qxg5 Bd6 4. Qf4'
    * currentTurn: The address of the player whose turn it is. This would be player 1 or player 2.
    * gameOver: boolean representing if the game has completed.
    * 
