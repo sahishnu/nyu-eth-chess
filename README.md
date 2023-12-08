@@ -20,6 +20,12 @@ npx hardhat compile
 npx hardhat test
 ```
 
+Running a local node which a front-end client can speak ton and running a deploy script on that local node:
+```
+npx hardhat node
+npx hardhat run --network localhost scripts/deploy.js
+```
+
 ## Resources
 
 [Hardhat Docs](https://hardhat.org/docs)
