@@ -56,7 +56,7 @@ contract StateChannelsChess {
     player1 = msg.sender;
     wagerAmount = msg.value;
     timeoutInterval = _timeoutInterval;
-    state.board = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+    state.board = '';
   }
 
   // Player 2 can join as long as the game has not started (or ended).
