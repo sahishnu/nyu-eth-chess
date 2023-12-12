@@ -20,9 +20,18 @@ describe("StateChannelsChess", function () {
     const [owner, opponent, extraPlayer] = await ethers.getSigners();
 
     const ChessGame = await ethers.getContractFactory("StateChannelsChess");
-    const chessGame = await ChessGame.deploy(_timeoutInterval, { value: wagerAmount });
+    const chessGame = await ChessGame.deploy(_timeoutInterval, {
+      value: wagerAmount,
+    });
 
-    return { chessGame, _timeoutInterval, wagerAmount, owner, opponent, extraPlayer };
+    return {
+      chessGame,
+      _timeoutInterval,
+      wagerAmount,
+      owner,
+      opponent,
+      extraPlayer,
+    };
   }
 
   describe("Deployment", function () {
@@ -45,15 +54,15 @@ describe("StateChannelsChess", function () {
     });
 
     it("Should set the right timeout interval", async function () {
-      const { chessGame, _timeoutInterval } = await loadFixture(deployChessFixture);
+      const { chessGame, _timeoutInterval } = await loadFixture(
+        deployChessFixture
+      );
 
       expect(await chessGame.timeoutInterval()).to.equal(_timeoutInterval);
     });
 
     it("Should receive and store the funds to chess game", async function () {
-      const { chessGame, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, wagerAmount } = await loadFixture(deployChessFixture);
 
       expect(await ethers.provider.getBalance(chessGame.target)).to.equal(
         wagerAmount
@@ -63,27 +72,44 @@ describe("StateChannelsChess", function () {
 
   describe("Cancel", async function () {
     it("Should allow player to cancel game before it starts", async function () {
-      const { chessGame, owner, wagerAmount } = await loadFixture(deployChessFixture);
-      await expect(chessGame.connect(owner).cancel()).to.changeEtherBalance(chessGame, -wagerAmount)
+      const { chessGame, owner, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+      await expect(chessGame.connect(owner).cancel()).to.changeEtherBalance(
+        chessGame,
+        -wagerAmount
+      );
     });
 
     it("Should reject player from canceling if game has started", async function () {
-      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(deployChessFixture);
-      await expect(chessGame.connect(opponent).join({ value: wagerAmount })).to.changeEtherBalance(chessGame, wagerAmount);
+      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+      await expect(
+        chessGame.connect(opponent).join({ value: wagerAmount })
+      ).to.changeEtherBalance(chessGame, wagerAmount);
       await expect(chessGame.connect(owner).cancel()).to.be.reverted;
     });
   });
 
   describe("Opponent", async function () {
     it("Should allow opponent to join before game starts", async function () {
-      const { chessGame, opponent, wagerAmount } = await loadFixture(deployChessFixture);
-      await expect(chessGame.connect(opponent).join({ value: wagerAmount })).to.changeEtherBalance(chessGame, wagerAmount);
+      const { chessGame, opponent, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+      await expect(
+        chessGame.connect(opponent).join({ value: wagerAmount })
+      ).to.changeEtherBalance(chessGame, wagerAmount);
     });
 
     it("Should reject player from joining if game has started", async function () {
-      const { chessGame, opponent, wagerAmount, extraPlayer } = await loadFixture(deployChessFixture);
-      await expect(chessGame.connect(opponent).join({ value: wagerAmount })).to.changeEtherBalance(chessGame, wagerAmount);
-      await expect(chessGame.connect(extraPlayer).join({ value: wagerAmount })).to.be.reverted;
+      const { chessGame, opponent, wagerAmount, extraPlayer } =
+        await loadFixture(deployChessFixture);
+      await expect(
+        chessGame.connect(opponent).join({ value: wagerAmount })
+      ).to.changeEtherBalance(chessGame, wagerAmount);
+      await expect(chessGame.connect(extraPlayer).join({ value: wagerAmount }))
+        .to.be.reverted;
     });
   });
 
