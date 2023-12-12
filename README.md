@@ -9,11 +9,13 @@ Front-end repo: [nyu-chess-frontend](https://github.com/sahishnu/nyu-chess-front
 ### Getting started
 
 Clone the repo
+
 ```
 git clone https://github.com/sahishnu/nyu-eth-chess.git
 ```
 
 Install dependencies, compile contracts & run tests
+
 ```
 npm i
 npx hardhat compile
@@ -21,6 +23,7 @@ npx hardhat test
 ```
 
 Running a local node which a front-end client can speak ton and running a deploy script on that local node:
+
 ```
 npx hardhat node
 npx hardhat run --network localhost scripts/deploy.js

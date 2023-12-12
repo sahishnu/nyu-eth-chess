@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.12 <0.9.0;
 
+import "hardhat/console.sol";
+
 contract StateChannelsChess {
     address public player1;
     address public player2;
@@ -90,17 +92,25 @@ contract StateChannelsChess {
     }
 
     // Play methods
+    // NOTE: Right now we assume that the clients are acting correctly
     function move(uint8 seq, string calldata value) public onlyPlayer {
         require(!state.gameOver, "Game has ended.");
         require(msg.sender == state.currentTurn, "Not your turn.");
         require(state.seq == seq, "Incorrect sequence number.");
 
         state.currentTurn = opponentOf(msg.sender);
-        state.board = value;
+        state.board = append(state.board, value);
         state.seq += 1;
 
         // Reset timeout to the max value.
         timeout = MAX_TIMEOUT;
+
+        // Check if the last character of the string is #
+        string memory lastCharacter = getLastCharacter(value);
+        if (keccak256(abi.encodePacked(lastCharacter)) == keccak256("#")) {
+            state.gameOver = true;
+            payable(msg.sender).transfer(address(this).balance);
+        }
 
         emit MoveMade(msg.sender, seq, value);
     }
@@ -120,18 +130,35 @@ contract StateChannelsChess {
         emit GameEnded();
     }
 
-    // function moveFromState(uint8 seq, uint8 num, bytes sig, uint8 value) public {
-    //   require(seq >= state.seq, "Sequence number cannot go backwards.");
+    function moveFromState(
+        uint8 seq,
+        string calldata board,
+        bytes memory sig,
+        string calldata value
+    ) public onlyPlayer {
+        require(seq >= state.seq, "Sequence number cannot go backwards.");
 
-    //   bytes32 message = prefixed(keccak256(address(this), seq, num));
-    //   require(recoverSigner(message, sig) == opponentOf(msg.sender));
+        // Correctly hash the address and numbers
+        bytes32 message = keccak256(
+            abi.encodePacked(address(this), seq, board, value)
+        );
 
-    //   state.seq = seq;
-    //   state.num = num;
-    //   state.currentTurn = msg.sender;
+        // Ensure the signer is the opponent
+        address signer = recoverSigner(message, sig);
+        console.log(signer);
+        require(
+            recoverSigner(message, sig) == opponentOf(msg.sender),
+            "Signer must be the opponent."
+        );
 
-    //   move(seq, value);
-    // }
+        // Update state
+        state.seq = seq;
+        state.board = board;
+        state.currentTurn = msg.sender;
+
+        // Call the move function
+        move(seq, value);
+    }
 
     // A util function to get the opponent of (address player).
     // For player 1, return player 2. For player 2, return player 1.
@@ -146,6 +173,14 @@ contract StateChannelsChess {
             revert("Invalid player.");
         }
     }
+
+    /**
+     * The contract is deployed by player 1 (msg.sender) and includes the wager (msg.value).
+     * A timeout interval is also included which determines how long a turn can last, before
+     * a player can be considered forfeit for inactivity.
+     *
+     * TODO: Determine if timeoutInterval can just be standardized.
+     */
 
     /**
      * The timeout mechanism allows a player to start a timer on their opponents turn.
@@ -214,5 +249,42 @@ contract StateChannelsChess {
             keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
             );
+    }
+
+    // Append new string to existing string with a whitespace in between
+    function append(string memory a, string calldata b)
+        internal
+        pure
+        returns (string memory)
+    {
+        return string(abi.encodePacked(a, " ", b));
+    }
+
+    // Return a list of players in the game
+    function getPlayers() public view returns (address[2] memory) {
+        return [player1, player2];
+    }
+
+    // Get the current state of the game
+    function getState() public view returns (GameState memory) {
+        return state;
+    }
+
+    // Set state
+    function setState(GameState memory _state) public {
+        state = _state;
+    }
+
+    function getLastCharacter(string memory str)
+        public
+        pure
+        returns (string memory)
+    {
+        bytes memory strBytes = bytes(str);
+        if (strBytes.length == 0) {
+            return "";
+        }
+        bytes1 lastByte = strBytes[strBytes.length - 1];
+        return string(abi.encodePacked(lastByte));
     }
 }

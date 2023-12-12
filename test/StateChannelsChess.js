@@ -113,6 +113,86 @@ describe("StateChannelsChess", function () {
     });
   });
 
+  describe("Move", async function () {
+    it("Should set the game state correctly", async function () {
+      const { owner, chessGame, opponent, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+      const newGameState = {
+        seq: 1,
+        board: "1. d4 d5",
+        currentTurn: opponent.address,
+        gameOver: false,
+      };
+
+      await chessGame.connect(opponent).join({ value: wagerAmount });
+      await chessGame.connect(owner).setState(newGameState);
+      // Get the updated state from the contract
+      const updatedState = await chessGame.state();
+
+      // Check if the state was updated correctly
+      expect(updatedState.seq).to.equal(newGameState.seq);
+      expect(updatedState.board).to.equal(newGameState.board);
+      expect(updatedState.currentTurn).to.equal(newGameState.currentTurn);
+      expect(updatedState.gameOver).to.equal(newGameState.gameOver);
+    });
+    it("Should update the state after a move", async function () {
+      const { owner, chessGame, opponent, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+      const newGameState = {
+        seq: 1,
+        board: "1. d4 d5",
+        currentTurn: opponent.address,
+        gameOver: false,
+      };
+
+      await chessGame.connect(opponent).join({ value: wagerAmount });
+      await chessGame.connect(owner).setState(newGameState);
+      await chessGame.connect(opponent).move(1, "2. f4");
+      const updatedState = await chessGame.state();
+      expect(updatedState.board).to.equal("1. d4 d5 2. f4");
+    });
+  });
+
+  describe("MoveFromState", function () {
+    it("should update the game state from a signed state", async function () {
+      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(
+        deployChessFixture
+      );
+
+      // Have Players join the game
+      await chessGame.connect(opponent).join({ value: wagerAmount });
+
+      // Assuming you have values for seq, board, and value
+      const seq = 3;
+      const board = "1. e4 e5"; // Example board state
+      const value = "2. Nf3"; // Example new move
+      const contractAddress = await chessGame.getAddress();
+
+      const message = ethers.keccak256(
+        ethers.toUtf8Bytes(contractAddress),
+        ethers.toUtf8Bytes(seq),
+        ethers.toUtf8Bytes(board),
+        ethers.toUtf8Bytes(value)
+      );
+
+      // Sign the message with player2's private key
+      const signature = await opponent.signMessage(message);
+
+      // Player1 submits the move
+      await chessGame
+        .connect(owner)
+        .moveFromState(seq, board, signature, value);
+      const state = await chessGame.getState();
+
+      // Assertions
+      expect(state.board).to.include(value);
+      expect(state.currentTurn).to.equal(player1.address);
+      // Add more assertions as needed
+    });
+  });
+
   // describe("Withdrawals", function () {
   //   describe("Validations", function () {
   //     it("Should revert with the right error if called too soon", async function () {
