@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.12 <0.9.0;
 
-import "hardhat/console.sol";
+import "./VerifySignature.sol";
 
 contract StateChannelsChess {
     address public player1;
@@ -27,6 +27,7 @@ contract StateChannelsChess {
         address currentTurn;
         bool gameOver;
     }
+
     GameState public state;
 
     uint256 public timeoutInterval;
@@ -145,7 +146,6 @@ contract StateChannelsChess {
 
         // Ensure the signer is the opponent
         address signer = recoverSigner(message, sig);
-        console.log(signer);
         require(
             recoverSigner(message, sig) == opponentOf(msg.sender),
             "Signer must be the opponent."
@@ -209,39 +209,6 @@ contract StateChannelsChess {
         state.gameOver = true;
         address payable opponent = payable(opponentOf(state.currentTurn));
         opponent.transfer(address(this).balance);
-    }
-
-    /// signature methods.
-    function splitSignature(
-        bytes memory sig
-    ) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
-        require(sig.length == 65);
-        assembly {
-            // first 32 bytes, after the length prefix.
-            r := mload(add(sig, 32))
-            // second 32 bytes.
-            s := mload(add(sig, 64))
-            // final byte (first byte of the next 32 bytes).
-            v := byte(0, mload(add(sig, 96)))
-        }
-        return (v, r, s);
-    }
-
-    function recoverSigner(
-        bytes32 message,
-        bytes memory sig
-    ) internal pure returns (address) {
-        (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
-
-        return ecrecover(message, v, r, s);
-    }
-
-    /// builds a prefixed hash to mimic the behavior of eth_sign.
-    function prefixed(bytes32 hash) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
-            );
     }
 
     // Append new string to existing string with a whitespace in between
