@@ -40,6 +40,8 @@ describe("ChessLeaderboard", function () {
 
   describe("getLeaderboard", function () {
     it("Should return the entire leaderboard", async function () {
+      await leaderboard.updateStats(player1.address, true);
+      await leaderboard.updateStats(player2.address, false);
       const [addresses, stats] = await leaderboard.getLeaderboard();
       expect(addresses.length).to.equal(2);
       expect(addresses[0]).to.equal(player1.address);
