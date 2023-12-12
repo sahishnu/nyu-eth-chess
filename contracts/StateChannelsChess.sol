@@ -30,7 +30,7 @@ contract StateChannelsChess {
     GameState public state;
 
     uint256 public timeoutInterval;
-    uint256 public constant MAX_TIMEOUT = 2**256 - 1;
+    uint256 public constant MAX_TIMEOUT = 2 ** 256 - 1;
     // Initially the timeout is some ridiculously high block number.
     // When a timeout is invoked, this value is updated to the
     // current block number + timeoutInterval. When a move is made,
@@ -212,15 +212,9 @@ contract StateChannelsChess {
     }
 
     /// signature methods.
-    function splitSignature(bytes memory sig)
-        internal
-        pure
-        returns (
-            uint8 v,
-            bytes32 r,
-            bytes32 s
-        )
-    {
+    function splitSignature(
+        bytes memory sig
+    ) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
         require(sig.length == 65);
         assembly {
             // first 32 bytes, after the length prefix.
@@ -233,11 +227,10 @@ contract StateChannelsChess {
         return (v, r, s);
     }
 
-    function recoverSigner(bytes32 message, bytes memory sig)
-        internal
-        pure
-        returns (address)
-    {
+    function recoverSigner(
+        bytes32 message,
+        bytes memory sig
+    ) internal pure returns (address) {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
 
         return ecrecover(message, v, r, s);
@@ -252,11 +245,10 @@ contract StateChannelsChess {
     }
 
     // Append new string to existing string with a whitespace in between
-    function append(string memory a, string calldata b)
-        internal
-        pure
-        returns (string memory)
-    {
+    function append(
+        string memory a,
+        string calldata b
+    ) internal pure returns (string memory) {
         return string(abi.encodePacked(a, " ", b));
     }
 
@@ -275,11 +267,9 @@ contract StateChannelsChess {
         state = _state;
     }
 
-    function getLastCharacter(string memory str)
-        public
-        pure
-        returns (string memory)
-    {
+    function getLastCharacter(
+        string memory str
+    ) public pure returns (string memory) {
         bytes memory strBytes = bytes(str);
         if (strBytes.length == 0) {
             return "";

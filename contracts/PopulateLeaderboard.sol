@@ -6,8 +6,15 @@ import "./ChessLeaderboard.sol";
 contract PopulateLeaderboard is IChessContract {
     ChessLeaderboard public leaderboard;
 
-    constructor(address _leaderboardAddress, address[] memory players, uint256[] memory wins) {
-        require(players.length == wins.length, "Players and wins arrays must be of the same length");
+    constructor(
+        address _leaderboardAddress,
+        address[] memory players,
+        uint256[] memory wins
+    ) {
+        require(
+            players.length == wins.length,
+            "Players and wins arrays must be of the same length"
+        );
 
         leaderboard = ChessLeaderboard(_leaderboardAddress);
 
@@ -22,5 +29,4 @@ contract PopulateLeaderboard is IChessContract {
     function isChessContract() external pure override returns (bool) {
         return true;
     }
-
 }
