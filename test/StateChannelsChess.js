@@ -6,7 +6,7 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("StateChannelsChess", function () {
+describe("StateChannelsChess", function() {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -33,11 +33,12 @@ describe("StateChannelsChess", function () {
           VerifySignature: hardhatTokenAddress,
         },
         value: wagerAmount,
-      }
+      },
     );
 
     return {
       chessGame,
+      verifySignature,
       _timeoutInterval,
       wagerAmount,
       owner,
@@ -46,33 +47,33 @@ describe("StateChannelsChess", function () {
     };
   }
 
-  describe("Deployment", function () {
-    it("This test should never fail", async function () {
+  describe("Deployment", function() {
+    it("This test should never fail", async function() {
       const { chessGame } = await loadFixture(deployChessFixture);
 
       expect(1 + 1).to.equal(2);
     });
 
-    it("Should set the right wagerAmount", async function () {
+    it("Should set the right wagerAmount", async function() {
       const { chessGame, wagerAmount } = await loadFixture(deployChessFixture);
 
       expect(await chessGame.wagerAmount()).to.equal(wagerAmount);
     });
 
-    it("Should set the right player1", async function () {
+    it("Should set the right player1", async function() {
       const { chessGame, owner } = await loadFixture(deployChessFixture);
 
       expect(await chessGame.player1()).to.equal(owner.address);
     });
 
-    it("Should set the right timeout interval", async function () {
+    it("Should set the right timeout interval", async function() {
       const { chessGame, _timeoutInterval } =
         await loadFixture(deployChessFixture);
 
       expect(await chessGame.timeoutInterval()).to.equal(_timeoutInterval);
     });
 
-    it("Should receive and store the funds to chess game", async function () {
+    it("Should receive and store the funds to chess game", async function() {
       const { chessGame, wagerAmount } = await loadFixture(deployChessFixture);
 
       expect(await ethers.provider.getBalance(chessGame.target)).to.equal(
@@ -81,8 +82,8 @@ describe("StateChannelsChess", function () {
     });
   });
 
-  describe("Cancel", async function () {
-    it("Should allow player to cancel game before it starts", async function () {
+  describe("Cancel", async function() {
+    it("Should allow player to cancel game before it starts", async function() {
       const { chessGame, owner, wagerAmount } =
         await loadFixture(deployChessFixture);
       await expect(chessGame.connect(owner).cancel()).to.changeEtherBalance(
@@ -91,7 +92,7 @@ describe("StateChannelsChess", function () {
       );
     });
 
-    it("Should reject player from canceling if game has started", async function () {
+    it("Should reject player from canceling if game has started", async function() {
       const { chessGame, owner, opponent, wagerAmount } =
         await loadFixture(deployChessFixture);
       await expect(
@@ -101,8 +102,8 @@ describe("StateChannelsChess", function () {
     });
   });
 
-  describe("Opponent", async function () {
-    it("Should allow opponent to join before game starts", async function () {
+  describe("Opponent", async function() {
+    it("Should allow opponent to join before game starts", async function() {
       const { chessGame, opponent, wagerAmount } =
         await loadFixture(deployChessFixture);
       await expect(
@@ -110,7 +111,7 @@ describe("StateChannelsChess", function () {
       ).to.changeEtherBalance(chessGame, wagerAmount);
     });
 
-    it("Should reject player from joining if game has started", async function () {
+    it("Should reject player from joining if game has started", async function() {
       const { chessGame, opponent, wagerAmount, extraPlayer } =
         await loadFixture(deployChessFixture);
       await expect(
@@ -121,8 +122,8 @@ describe("StateChannelsChess", function () {
     });
   });
 
-  describe("Move", async function () {
-    it("Should set the game state correctly", async function () {
+  describe("Move", async function() {
+    it("Should set the game state correctly", async function() {
       const { owner, chessGame, opponent, wagerAmount } =
         await loadFixture(deployChessFixture);
       const newGameState = {
@@ -143,7 +144,7 @@ describe("StateChannelsChess", function () {
       expect(updatedState.currentTurn).to.equal(newGameState.currentTurn);
       expect(updatedState.gameOver).to.equal(newGameState.gameOver);
     });
-    it("Should update the state after a move", async function () {
+    it("Should update the state after a move", async function() {
       const { owner, chessGame, opponent, wagerAmount } =
         await loadFixture(deployChessFixture);
       const newGameState = {
@@ -161,8 +162,8 @@ describe("StateChannelsChess", function () {
     });
   });
 
-  describe("MoveFromState", function () {
-    it("should update the game state from a signed state", async function () {
+  describe("MoveFromState", function() {
+    it("should update the game state from a signed state", async function() {
       const { chessGame, owner, opponent, wagerAmount } =
         await loadFixture(deployChessFixture);
 
@@ -198,69 +199,123 @@ describe("StateChannelsChess", function () {
     });
   });
 
-  // describe("Withdrawals", function () {
-  //   describe("Validations", function () {
-  //     it("Should revert with the right error if called too soon", async function () {
-  //       const { lock } = await loadFixture(deployOneYearLockFixture);
+  describe("VerifySignature", function() {
+    it("Check signature", async function() {
+      const { verifySignature, owner, opponent } =
+        await loadFixture(deployChessFixture);
 
-  //       await expect(lock.withdraw()).to.be.revertedWith(
-  //         "You can't withdraw yet"
-  //       );
-  //     });
+      // const PRIV_KEY = "0x..."
+      // const signer = new ethers.Wallet(PRIV_KEY)
+      const board = "1. d4 d5";
+      const nonce = 1;
+      const latestMove = "2. f4";
 
-  //     it("Should revert with the right error if called from another account", async function () {
-  //       const { lock, unlockTime, otherAccount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+      const hash = await verifySignature.getMessageHash(
+        owner,
+        opponent,
+        nonce,
+        latestMove,
+        board,
+      );
+      const sig = await owner.signMessage(hash);
 
-  //       // We can increase the time in Hardhat Network
-  //       await time.increaseTo(unlockTime);
+      const ethHash = await verifySignature.getEthSignedMessageHash(hash);
 
-  //       // We use lock.connect() to send a transaction from another account
-  //       await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-  //         "You aren't the owner"
-  //       );
-  //     });
+      console.log("signer          ", owner.address);
+      console.log(
+        "recovered signer",
+        await verifySignature.recoverSigner(ethHash, sig),
+      );
 
-  //     it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-  //       const { lock, unlockTime } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+      // Correct signature and message returns true
+      expect(
+        await verifySignature.verify(
+          owner,
+          opponent,
+          nonce,
+          latestMove,
+          board,
+          sig,
+        ),
+      ).to.equal(true);
 
-  //       // Transactions are sent using the first signer by default
-  //       await time.increaseTo(unlockTime);
+      // Incorrect message returns false
+      expect(
+        await verifySignature.verify(
+          owner,
+          opponent,
+          nonce,
+          latestMove,
+          board + "1",
+          sig,
+        ),
+      ).to.equal(false);
+    });
 
-  //       await expect(lock.withdraw()).not.to.be.reverted;
-  //     });
-  //   });
+    // describe("Withdrawals", function () {
+    //   describe("Validations", function () {
+    //     it("Should revert with the right error if called too soon", async function () {
+    //       const { lock } = await loadFixture(deployOneYearLockFixture);
 
-  //   describe("Events", function () {
-  //     it("Should emit an event on withdrawals", async function () {
-  //       const { lock, unlockTime, lockedAmount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+    //       await expect(lock.withdraw()).to.be.revertedWith(
+    //         "You can't withdraw yet"
+    //       );
+    //     });
 
-  //       await time.increaseTo(unlockTime);
+    //     it("Should revert with the right error if called from another account", async function () {
+    //       const { lock, unlockTime, otherAccount } = await loadFixture(
+    //         deployOneYearLockFixture
+    //       );
 
-  //       await expect(lock.withdraw())
-  //         .to.emit(lock, "Withdrawal")
-  //         .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-  //     });
-  //   });
+    //       // We can increase the time in Hardhat Network
+    //       await time.increaseTo(unlockTime);
 
-  //   describe("Transfers", function () {
-  //     it("Should transfer the funds to the owner", async function () {
-  //       const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+    //       // We use lock.connect() to send a transaction from another account
+    //       await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
+    //         "You aren't the owner"
+    //       );
+    //     });
 
-  //       await time.increaseTo(unlockTime);
+    //     it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
+    //       const { lock, unlockTime } = await loadFixture(
+    //         deployOneYearLockFixture
+    //       );
 
-  //       await expect(lock.withdraw()).to.changeEtherBalances(
-  //         [owner, lock],
-  //         [lockedAmount, -lockedAmount]
-  //       );
-  //     });
-  //   });
-  // });
+    //       // Transactions are sent using the first signer by default
+    //       await time.increaseTo(unlockTime);
+
+    //       await expect(lock.withdraw()).not.to.be.reverted;
+    //     });
+    //   });
+
+    //   describe("Events", function () {
+    //     it("Should emit an event on withdrawals", async function () {
+    //       const { lock, unlockTime, lockedAmount } = await loadFixture(
+    //         deployOneYearLockFixture
+    //       );
+
+    //       await time.increaseTo(unlockTime);
+
+    //       await expect(lock.withdraw())
+    //         .to.emit(lock, "Withdrawal")
+    //         .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
+    //     });
+    //   });
+
+    //   describe("Transfers", function () {
+    //     it("Should transfer the funds to the owner", async function () {
+    //       const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
+    //         deployOneYearLockFixture
+    //       );
+
+    //       await time.increaseTo(unlockTime);
+
+    //       await expect(lock.withdraw()).to.changeEtherBalances(
+    //         [owner, lock],
+    //         [lockedAmount, -lockedAmount]
+    //       );
+    //     });
+    //   });
+    // });
+  });
 });

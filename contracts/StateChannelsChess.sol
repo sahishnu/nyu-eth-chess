@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.12 <0.9.0;
 
-import "./VerifySignature.sol";
+import {VerifySignature} from "./VerifySignature.sol";
 
 contract StateChannelsChess {
     address public player1;
@@ -116,6 +116,43 @@ contract StateChannelsChess {
         emit MoveMade(msg.sender, seq, value);
     }
 
+    function moveFromState(
+        uint8 nonce,
+        string calldata board,
+        bytes memory singature,
+        string calldata latestMove
+    ) public onlyPlayer {
+        require(nonce >= state.seq, "Sequence number cannot go backwards.");
+
+        // Get my address and opponent address
+        address myAddress = msg.sender;
+        address opponentAddress = opponentOf(msg.sender);
+
+        // Get the signer of the message
+        bool signerIsOpponent = VerifySignature.verify(
+            myAddress,
+            opponentAddress,
+            nonce,
+            board,
+            latestMove,
+            singature
+        );
+
+        // Ensure the signerIsOpponent is true
+        require(
+            signerIsOpponent,
+            "The signature does not match the opponent's address."
+        );
+
+        // Update state
+        state.seq = nonce;
+        state.board = board;
+        state.currentTurn = msg.sender;
+
+        // Call the move function
+        move(nonce, latestMove);
+    }
+
     function endGame() public {
         require(!state.gameOver, "Game has already been ended.");
         require(
@@ -129,35 +166,6 @@ contract StateChannelsChess {
         // For example, send the total wager to the winner
 
         emit GameEnded();
-    }
-
-    function moveFromState(
-        uint8 seq,
-        string calldata board,
-        bytes memory sig,
-        string calldata value
-    ) public onlyPlayer {
-        require(seq >= state.seq, "Sequence number cannot go backwards.");
-
-        // Correctly hash the address and numbers
-        bytes32 message = keccak256(
-            abi.encodePacked(address(this), seq, board, value)
-        );
-
-        // Ensure the signer is the opponent
-        address signer = recoverSigner(message, sig);
-        require(
-            recoverSigner(message, sig) == opponentOf(msg.sender),
-            "Signer must be the opponent."
-        );
-
-        // Update state
-        state.seq = seq;
-        state.board = board;
-        state.currentTurn = msg.sender;
-
-        // Call the move function
-        move(seq, value);
     }
 
     // A util function to get the opponent of (address player).

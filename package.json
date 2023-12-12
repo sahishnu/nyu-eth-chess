@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Final project for NYU crypto class",
   "main": "index.js",
+  "scripts": {
+    "fmt": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'"
+  },
   "repository": "https://github.com/sahishnu/nyu-eth-chess.git",
   "author": "Sahishnu <9358407+sahishnu@users.noreply.github.com>",
   "license": "MIT",
@@ -19,6 +22,8 @@
     "chai": "^4.3.10",
     "hardhat": "^2.19.1",
     "hardhat-gas-reporter": "^1.0.9",
+    "prettier": "^3.1.1",
+    "prettier-plugin-solidity": "^1.2.0",
     "solidity-coverage": "^0.8.5",
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
