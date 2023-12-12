@@ -4,6 +4,7 @@ const {
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
 describe("StateChannelsChess", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -16,10 +17,17 @@ describe("StateChannelsChess", function () {
     const wagerAmount = ONE_GWEI;
     const _timeoutInterval = TEN_MINUTES_IN_SECONDS;
 
-    // Contracts are deployed using the first signer/account by default
     const [owner, opponent, extraPlayer] = await ethers.getSigners();
 
-    const ChessGame = await ethers.getContractFactory("StateChannelsChess");
+    const hardhatToken = await ethers.deployContract("VerifySignature");
+    await hardhatToken.waitForDeployment();
+    const hardhatTokenAddress = await hardhatToken.getAddress();
+
+    const ChessGame = await ethers.getContractFactory("StateChannelsChess", {
+      libraries: {
+        VerifySignature: hardhatTokenAddress,
+      },
+    });
     const chessGame = await ChessGame.deploy(_timeoutInterval, {
       value: wagerAmount,
     });
@@ -54,9 +62,8 @@ describe("StateChannelsChess", function () {
     });
 
     it("Should set the right timeout interval", async function () {
-      const { chessGame, _timeoutInterval } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, _timeoutInterval } =
+        await loadFixture(deployChessFixture);
 
       expect(await chessGame.timeoutInterval()).to.equal(_timeoutInterval);
     });
@@ -65,28 +72,26 @@ describe("StateChannelsChess", function () {
       const { chessGame, wagerAmount } = await loadFixture(deployChessFixture);
 
       expect(await ethers.provider.getBalance(chessGame.target)).to.equal(
-        wagerAmount
+        wagerAmount,
       );
     });
   });
 
   describe("Cancel", async function () {
     it("Should allow player to cancel game before it starts", async function () {
-      const { chessGame, owner, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, owner, wagerAmount } =
+        await loadFixture(deployChessFixture);
       await expect(chessGame.connect(owner).cancel()).to.changeEtherBalance(
         chessGame,
-        -wagerAmount
+        -wagerAmount,
       );
     });
 
     it("Should reject player from canceling if game has started", async function () {
-      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, owner, opponent, wagerAmount } =
+        await loadFixture(deployChessFixture);
       await expect(
-        chessGame.connect(opponent).join({ value: wagerAmount })
+        chessGame.connect(opponent).join({ value: wagerAmount }),
       ).to.changeEtherBalance(chessGame, wagerAmount);
       await expect(chessGame.connect(owner).cancel()).to.be.reverted;
     });
@@ -94,11 +99,10 @@ describe("StateChannelsChess", function () {
 
   describe("Opponent", async function () {
     it("Should allow opponent to join before game starts", async function () {
-      const { chessGame, opponent, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, opponent, wagerAmount } =
+        await loadFixture(deployChessFixture);
       await expect(
-        chessGame.connect(opponent).join({ value: wagerAmount })
+        chessGame.connect(opponent).join({ value: wagerAmount }),
       ).to.changeEtherBalance(chessGame, wagerAmount);
     });
 
@@ -106,7 +110,7 @@ describe("StateChannelsChess", function () {
       const { chessGame, opponent, wagerAmount, extraPlayer } =
         await loadFixture(deployChessFixture);
       await expect(
-        chessGame.connect(opponent).join({ value: wagerAmount })
+        chessGame.connect(opponent).join({ value: wagerAmount }),
       ).to.changeEtherBalance(chessGame, wagerAmount);
       await expect(chessGame.connect(extraPlayer).join({ value: wagerAmount }))
         .to.be.reverted;
@@ -115,9 +119,8 @@ describe("StateChannelsChess", function () {
 
   describe("Move", async function () {
     it("Should set the game state correctly", async function () {
-      const { owner, chessGame, opponent, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { owner, chessGame, opponent, wagerAmount } =
+        await loadFixture(deployChessFixture);
       const newGameState = {
         seq: 1,
         board: "1. d4 d5",
@@ -137,9 +140,8 @@ describe("StateChannelsChess", function () {
       expect(updatedState.gameOver).to.equal(newGameState.gameOver);
     });
     it("Should update the state after a move", async function () {
-      const { owner, chessGame, opponent, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { owner, chessGame, opponent, wagerAmount } =
+        await loadFixture(deployChessFixture);
       const newGameState = {
         seq: 1,
         board: "1. d4 d5",
@@ -157,9 +159,8 @@ describe("StateChannelsChess", function () {
 
   describe("MoveFromState", function () {
     it("should update the game state from a signed state", async function () {
-      const { chessGame, owner, opponent, wagerAmount } = await loadFixture(
-        deployChessFixture
-      );
+      const { chessGame, owner, opponent, wagerAmount } =
+        await loadFixture(deployChessFixture);
 
       // Have Players join the game
       await chessGame.connect(opponent).join({ value: wagerAmount });
@@ -174,7 +175,7 @@ describe("StateChannelsChess", function () {
         ethers.toUtf8Bytes(contractAddress),
         ethers.toUtf8Bytes(seq),
         ethers.toUtf8Bytes(board),
-        ethers.toUtf8Bytes(value)
+        ethers.toUtf8Bytes(value),
       );
 
       // Sign the message with player2's private key
